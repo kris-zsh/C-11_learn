@@ -25,9 +25,10 @@ class ObjectPool : public NoCopyable {
 public:
     template<typename... Args>
     using construct = std::function<std::shared_ptr<T>(Args...)>;
+    ~ObjectPool(){is_clean = true;}
 
     template<typename... Args>
-    void init(size_t num, Args... args) {
+    void init(size_t num, Args&&... args) {
         if (num <= 0 || num > MaxObjectNum)
             throw std::logic_error("object pool num is error");
 
@@ -36,7 +37,10 @@ public:
 
         for (size_t i = 0; i < num; i++) {
             object_maps_.emplace(construct_name, std::shared_ptr<T>(new T(std::forward<Args>(args)...), [construct_name, this](T *p) {
-                                     object_maps_.emplace(std::move(construct_name), std::shared_ptr<T>(p));
+                                     if(is_clean)
+                                         delete p;
+                                     else
+                                        object_maps_.emplace(construct_name, std::shared_ptr<T>(p));
                                  }));
         }
     }
@@ -58,6 +62,7 @@ public:
     }
 
 private:
+    bool is_clean = false;
     std::multimap<std::string, std::shared_ptr<T>> object_maps_;
 };
 #endif//OBJECT_POOL_MY_OBJECT_POOL_H
