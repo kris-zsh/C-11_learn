@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.24)
 project(object_pool)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
-add_executable(object_pool main.cpp object_pool.h)
+add_executable(object_pool main.cpp  my_object_pool.h)
