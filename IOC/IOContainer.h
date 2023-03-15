@@ -20,38 +20,44 @@ public:
     NoCopyable& operator=(const NoCopyable&) = delete;
 };
 
-template<typename T>
 class IOContainer : public NoCopyable{
 public:
-    using create_object = std::function<T*()>;
     IOContainer() =default;
     ~IOContainer() override = default;
 
-    template<typename Dervied>
+    template<typename T, typename Depend = void>
     void register_type(const std::string& key){
-        create_object ob = [](){return new Dervied();};
+        using create_object = std::function<T*()>;
+        create_object ob = []{
+            if constexpr (std::is_same_v<Depend,void>)
+                return new T();
+            else
+                return new T(new Depend());
+        };
         register_type(key,ob);
     }
-
+    template<typename T>
     T* resolve_ptr(const std::string& key){
+        using create_object = std::function<T*()>;
         auto it = create_maps.find(key);
-        return it->second();
+        auto fun = std::any_cast<create_object>(it->second);
+        return fun();
     }
+
+    template<typename T>
     std::shared_ptr<T> resolve_smart_ptr(const std::string& key){
-        auto it = create_maps.find(key);
-        assert(it != create_maps.end());
-        T* t = it->second();
+        T* t = resolve_ptr<T>(key);
         return std::shared_ptr<T>(t);
     }
 
 private:
-    void register_type(const std::string& key, create_object ob){
+    void register_type(const std::string& key, std::any any){
         if(create_maps.find(key) != create_maps.end())
             throw std::invalid_argument("this key already exist");
-        create_maps[key] = ob;
+        create_maps[key] = any;
     }
 
-    std::map<std::string,create_object >create_maps;
+    std::map<std::string,std::any >create_maps;
 };
 
 #endif//IOC_IOCONTAINER_H
