@@ -47,29 +47,29 @@ public:
 
     template<typename T, typename... Args>
     void register_simple(const std::string &key) {
-        using create_object = std::function<T *(Args...)>;
-        create_object ob = [](Args... args) {
-            return new T(args...);
+        using create_object = std::function<T *(Args&&...)>;
+        create_object ob = [](Args&&... args) {
+            return new T(std::forward<Args>(args)...);
         };
         register_type(key, ob);
     }
 
     template<typename T, typename... Args>
-    T *resolve_ptr(const std::string &key, Args... args) {
-        using create_object = std::function<T *(Args...)>;
+    T *resolve_ptr(const std::string &key, Args&&... args) {
+        using create_object = std::function<T *(Args&&...)>;
         auto it = create_maps.find(key);
         auto fun = std::any_cast<create_object>(it->second);
-        return fun(args...);
+        return fun(std::forward<Args>(args)...);
     }
 
     template<typename T, typename... Args>
-    std::shared_ptr<T> resolve_smart_ptr(const std::string &key, Args... args) {
-        T *t = resolve_ptr<T>(key, args...);
+    std::shared_ptr<T> resolve_smart_ptr(const std::string &key, Args&&... args) {
+        T *t = resolve_ptr<T>(key, std::forward<Args>(args)...);
         return std::shared_ptr<T>(t);
     }
 
 private:
-    void register_type(const std::string &key, std::any any) {
+    void register_type(const std::string &key, const std::any& any) {
         if (create_maps.find(key) != create_maps.end())
             throw std::invalid_argument("this key already exist");
         create_maps[key] = any;
