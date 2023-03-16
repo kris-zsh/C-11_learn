@@ -13,7 +13,7 @@ struct test{
 class ICar{
 public:
     virtual ~ICar() = default;
-    virtual void show() = 0;
+    virtual void show(){};
 };
 
 class Bus:public ICar{
@@ -53,10 +53,13 @@ public:
 private:
     ICar* ptr_;
 };
+
 int main() {
     IOContainer IOC;
     IOC.register_type<A,Bus>("Bus");
     IOC.register_type<A,Car>("Car");
+    IOC.register_type<ICar,Car>("ICar");
+
     IOC.register_simple<test>("test");
     IOC.register_simple<BBB,int,int>("BBB");
 

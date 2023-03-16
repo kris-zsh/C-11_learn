@@ -11,6 +11,7 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 class NoCopyable {
 public:
@@ -25,35 +26,46 @@ public:
     IOContainer() = default;
     ~IOContainer() override = default;
 
-    template<typename T, typename Depend, typename ...Args>
-    void register_type(const std::string &key) {
-        using create_object = std::function<T *()>;
-        create_object ob = [] (Args...args){
+    template<typename T, typename Depend, typename... Args>
+    typename std::enable_if<!std::is_base_of_v<T, Depend>>::type register_type(const std::string &key) {
+        std::cout << key << " is not baserelation" << std::endl;
+        using create_object = std::function<T *(Args...)>;
+        create_object ob = [](Args... args) {
             return new T(new Depend(args...));
         };
         register_type(key, ob);
     }
 
-    template<typename T,typename ...Args>
+    template<typename T, typename Depend, typename... Args>
+    typename std::enable_if<std::is_base_of_v<T, Depend>>::type register_type(const std::string &key) {
+        std::cout << key << " is base_relation" << std::endl;
+        using create_object = std::function<T *()>;
+        create_object ob = [](Args... args) {
+            return new Depend(args...);
+        };
+        register_type(key, ob);
+    }
+
+    template<typename T, typename... Args>
     void register_simple(const std::string &key) {
         using create_object = std::function<T *(Args...)>;
-        create_object ob = [] (Args...args){
+        create_object ob = [](Args... args) {
             return new T(args...);
         };
         register_type(key, ob);
     }
 
-    template<typename T,typename ...Args>
-    T *resolve_ptr(const std::string &key, Args...args) {
+    template<typename T, typename... Args>
+    T *resolve_ptr(const std::string &key, Args... args) {
         using create_object = std::function<T *(Args...)>;
         auto it = create_maps.find(key);
         auto fun = std::any_cast<create_object>(it->second);
         return fun(args...);
     }
 
-    template<typename T,typename ...Args>
-    std::shared_ptr<T> resolve_smart_ptr(const std::string &key,Args...args) {
-        T *t = resolve_ptr<T>(key,args...);
+    template<typename T, typename... Args>
+    std::shared_ptr<T> resolve_smart_ptr(const std::string &key, Args... args) {
+        T *t = resolve_ptr<T>(key, args...);
         return std::shared_ptr<T>(t);
     }
 
