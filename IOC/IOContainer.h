@@ -28,20 +28,19 @@ public:
 
     template<typename T, typename Depend, typename... Args>
     typename std::enable_if<!std::is_base_of_v<T, Depend>>::type register_type(const std::string &key) {
-        std::cout << key << " is not baserelation" << std::endl;
-        using create_object = std::function<T *(Args...)>;
-        create_object ob = [](Args... args) {
-            return new T(new Depend(args...));
+        using create_object = std::function<T *(Args&&...)>;
+        create_object ob = [](Args&&... args) {
+            return new T(new Depend(std::forward<Args>(args)...));
         };
         register_type(key, ob);
     }
 
     template<typename T, typename Depend, typename... Args>
     typename std::enable_if<std::is_base_of_v<T, Depend>>::type register_type(const std::string &key) {
-        std::cout << key << " is base_relation" << std::endl;
-        using create_object = std::function<T *()>;
-        create_object ob = [](Args... args) {
-            return new Depend(args...);
+        using create_object = std::function<T *(Args&&...)>;
+
+        create_object ob = [](Args&&... args) {
+            return new Depend(std::forward<Args>(args)...);
         };
         register_type(key, ob);
     }
