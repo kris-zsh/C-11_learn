@@ -25,35 +25,35 @@ public:
     IOContainer() = default;
     ~IOContainer() override = default;
 
-    template<typename T, typename Depend = void>
+    template<typename T, typename Depend, typename ...Args>
     void register_type(const std::string &key) {
         using create_object = std::function<T *()>;
-        create_object ob = [] {
-            return new T(new Depend());
+        create_object ob = [] (Args...args){
+            return new T(new Depend(args...));
         };
         register_type(key, ob);
     }
 
-    template<typename T>
-    void register_type(const std::string &key) {
-        using create_object = std::function<T *()>;
-        create_object ob = [] {
-            return new T();
+    template<typename T,typename ...Args>
+    void register_simple(const std::string &key) {
+        using create_object = std::function<T *(Args...)>;
+        create_object ob = [] (Args...args){
+            return new T(args...);
         };
         register_type(key, ob);
     }
 
-    template<typename T>
-    T *resolve_ptr(const std::string &key) {
-        using create_object = std::function<T *()>;
+    template<typename T,typename ...Args>
+    T *resolve_ptr(const std::string &key, Args...args) {
+        using create_object = std::function<T *(Args...)>;
         auto it = create_maps.find(key);
         auto fun = std::any_cast<create_object>(it->second);
-        return fun();
+        return fun(args...);
     }
 
-    template<typename T>
-    std::shared_ptr<T> resolve_smart_ptr(const std::string &key) {
-        T *t = resolve_ptr<T>(key);
+    template<typename T,typename ...Args>
+    std::shared_ptr<T> resolve_smart_ptr(const std::string &key,Args...args) {
+        T *t = resolve_ptr<T>(key,args...);
         return std::shared_ptr<T>(t);
     }
 
